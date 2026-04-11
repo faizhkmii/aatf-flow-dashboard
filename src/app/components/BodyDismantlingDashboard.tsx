@@ -13,14 +13,27 @@ export function BodyDismantlingDashboard({ vehicles, facilityCapacity }: BodyDis
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFacility, setSelectedFacility] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [stoppedVehicleIds, setStoppedVehicleIds] = useState<Set<string>>(new Set());
 
   const filteredByFacility = selectedFacility === 'all' ? vehicles : vehicles.filter(v => v.facility === selectedFacility);
 
-  const inProgressVehicles = filteredByFacility.filter(
+  // Override status for stopped vehicles so they move from in-progress to completed
+  const effectiveVehicles = filteredByFacility.map(v => {
+    if (stoppedVehicleIds.has(v.id) && v.status === 'dismantling_in_progress') {
+      return {
+        ...v,
+        status: 'body_dismantling_done' as const,
+        timestamps: { ...v.timestamps, bodyDismantlingEnd: new Date() }
+      };
+    }
+    return v;
+  });
+
+  const inProgressVehicles = effectiveVehicles.filter(
     v => v.status === 'dismantling_in_progress'
   );
 
-  const completedVehicles = filteredByFacility.filter(
+  const completedVehicles = effectiveVehicles.filter(
     v => v.status === 'body_dismantling_done'
   );
 
@@ -51,8 +64,7 @@ export function BodyDismantlingDashboard({ vehicles, facilityCapacity }: BodyDis
     : 0;
 
   const handleStopTimer = (vehicleId: string) => {
-    // In a real app this would call an API to stop the dismantling timer
-    console.log(`Stop timer for vehicle: ${vehicleId}`);
+    setStoppedVehicleIds(prev => new Set(prev).add(vehicleId));
   };
 
   return (
@@ -110,8 +122,14 @@ export function BodyDismantlingDashboard({ vehicles, facilityCapacity }: BodyDis
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           title="Bays Occupied"
-          value={`${Math.min(inProgressVehicles.length, 8)} / 8`}
-          subtitle={inProgressVehicles.length > 8 ? `${inProgressVehicles.length - 8} in queue` : 'Dismantling bays'}
+          value={selectedFacility === 'all'
+            ? `${Math.min(inProgressVehicles.length, 24)} / 24`
+            : `${Math.min(inProgressVehicles.length, 8)} / 8`
+          }
+          subtitle={selectedFacility === 'all'
+            ? '8 bays x 3 facilities'
+            : (inProgressVehicles.length > 8 ? `${inProgressVehicles.length - 8} in queue` : 'Dismantling bays')
+          }
           icon={<Timer className="w-5 h-5" />}
           color="red"
         />
@@ -138,7 +156,8 @@ export function BodyDismantlingDashboard({ vehicles, facilityCapacity }: BodyDis
       {/* Bay Map View */}
       {viewMode === 'map' && (
         <DismantlingBayMap
-          vehicles={filteredByFacility}
+          vehicles={effectiveVehicles}
+          selectedFacility={selectedFacility}
           onStopTimer={handleStopTimer}
         />
       )}

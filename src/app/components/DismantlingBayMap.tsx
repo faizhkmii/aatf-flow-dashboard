@@ -13,13 +13,15 @@ interface Bay {
 
 interface DismantlingBayMapProps {
   vehicles: Vehicle[];
+  selectedFacility: string;
   onStopTimer: (vehicleId: string) => void;
 }
 
-export function DismantlingBayMap({ vehicles, onStopTimer }: DismantlingBayMapProps) {
+export function DismantlingBayMap({ vehicles, selectedFacility, onStopTimer }: DismantlingBayMapProps) {
   const [now, setNow] = useState(new Date());
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [confirmStop, setConfirmStop] = useState<Vehicle | null>(null);
 
   // Tick every second for live timers
   useEffect(() => {
@@ -27,16 +29,24 @@ export function DismantlingBayMap({ vehicles, onStopTimer }: DismantlingBayMapPr
     return () => clearInterval(interval);
   }, []);
 
-  // Assign vehicles to 8 bays (first 8 dismantling_in_progress vehicles)
-  const inProgressVehicles = vehicles
-    .filter(v => v.status === 'dismantling_in_progress')
-    .slice(0, 8);
+  // Build facility sections: one per facility when "all", or just the selected one
+  const facilityNames = selectedFacility === 'all'
+    ? [...new Set(vehicles.map(v => v.facility))].sort()
+    : [selectedFacility];
 
-  const bays: Bay[] = Array.from({ length: 8 }, (_, i) => ({
-    id: i + 1,
-    label: `Bay ${i + 1}`,
-    vehicle: inProgressVehicles[i] || null,
-  }));
+  const facilitySections = facilityNames.map(facility => {
+    const facilityVehicles = vehicles
+      .filter(v => v.facility === facility && v.status === 'dismantling_in_progress')
+      .slice(0, 8);
+
+    const bays: Bay[] = Array.from({ length: 8 }, (_, i) => ({
+      id: i + 1,
+      label: `Bay ${i + 1}`,
+      vehicle: facilityVehicles[i] || null,
+    }));
+
+    return { facility, bays };
+  });
 
   const formatTimer = (startTime: Date | undefined): string => {
     if (!startTime) return '00:00:00';
@@ -60,41 +70,67 @@ export function DismantlingBayMap({ vehicles, onStopTimer }: DismantlingBayMapPr
     setDetailOpen(true);
   };
 
+  const handleStopRequest = (vehicle: Vehicle) => {
+    setConfirmStop(vehicle);
+  };
+
+  const handleConfirmStop = () => {
+    if (confirmStop) {
+      onStopTimer(confirmStop.id);
+      setConfirmStop(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Bay Map Grid - 2 rows of 4 */}
-      <div className="bg-muted/50 dark:bg-muted/30 rounded-xl p-3 sm:p-6 border border-border">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          {bays.map((bay) => (
-            <BaySlot
-              key={bay.id}
-              bay={bay}
-              timer={formatTimer(bay.vehicle?.timestamps.bodyDismantlingStart)}
-              timerColor={getTimerColor(bay.vehicle?.timestamps.bodyDismantlingStart)}
-              onVehicleClick={handleVehicleClick}
-              onStopTimer={onStopTimer}
-            />
-          ))}
-        </div>
+      {/* Bay Maps - one per facility */}
+      {facilitySections.map(({ facility, bays }) => {
+        const occupied = bays.filter(b => b.vehicle).length;
+        return (
+          <div key={facility} className="bg-muted/50 dark:bg-muted/30 rounded-xl border border-border overflow-hidden">
+            {/* Facility header - shown when viewing all facilities */}
+            {selectedFacility === 'all' && (
+              <div className="px-4 sm:px-6 py-3 border-b border-border flex items-center justify-between bg-card">
+                <h4 className="text-foreground font-medium">{facility}</h4>
+                <span className="text-xs text-muted-foreground">{occupied} / 8 bays occupied</span>
+              </div>
+            )}
 
-        {/* Legend */}
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-4 sm:mt-5 pt-4 border-t border-border">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="w-3 h-3 rounded bg-emerald-500" />
-            <span>{"< 1h"}</span>
+            <div className="p-3 sm:p-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                {bays.map((bay) => (
+                  <BaySlot
+                    key={`${facility}-${bay.id}`}
+                    bay={bay}
+                    timer={formatTimer(bay.vehicle?.timestamps.bodyDismantlingStart)}
+                    timerColor={getTimerColor(bay.vehicle?.timestamps.bodyDismantlingStart)}
+                    onVehicleClick={handleVehicleClick}
+                    onStopTimer={handleStopRequest}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="w-3 h-3 rounded bg-amber-500" />
-            <span>1h - 2h</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="w-3 h-3 rounded bg-red-500" />
-            <span>{"> 2h"}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="w-3 h-3 rounded border-2 border-dashed border-muted-foreground/40" />
-            <span>Empty Bay</span>
-          </div>
+        );
+      })}
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 sm:gap-6 px-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="w-3 h-3 rounded bg-emerald-500" />
+          <span>{"< 1h"}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="w-3 h-3 rounded bg-amber-500" />
+          <span>1h - 2h</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="w-3 h-3 rounded bg-red-500" />
+          <span>{"> 2h"}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="w-3 h-3 rounded border-2 border-dashed border-muted-foreground/40" />
+          <span>Empty Bay</span>
         </div>
       </div>
 
@@ -143,6 +179,58 @@ export function DismantlingBayMap({ vehicles, onStopTimer }: DismantlingBayMapPr
                   )}
                 </div>
               </div>
+
+              {/* Stop button */}
+              <button
+                onClick={() => {
+                  setDetailOpen(false);
+                  handleStopRequest(selectedVehicle);
+                }}
+                className="w-full px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <StopCircle className="w-4 h-4" />
+                Stop Dismantling
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Stop Confirmation Dialog */}
+      <Dialog open={confirmStop !== null} onOpenChange={(open) => !open && setConfirmStop(null)}>
+        <DialogContent className="max-w-sm bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Stop Dismantling?</DialogTitle>
+          </DialogHeader>
+          {confirmStop && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <VehicleTopView vehicleType={confirmStop.vehicleType} className="w-10 h-20 flex-shrink-0" />
+                <div>
+                  <div className="text-sm font-bold text-foreground">{confirmStop.vehicleNumber}</div>
+                  <div className="text-xs text-muted-foreground">{confirmStop.vehicleType} - {confirmStop.facility}</div>
+                  <div className={`text-sm font-mono font-bold mt-1 ${getTimerColor(confirmStop.timestamps.bodyDismantlingStart)}`}>
+                    {formatTimer(confirmStop.timestamps.bodyDismantlingStart)}
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This will end the dismantling session and mark the vehicle as completed. This action cannot be undone.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setConfirmStop(null)}
+                  className="px-4 py-2 rounded-lg border border-border text-foreground text-sm hover:bg-muted transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmStop}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
+                >
+                  Stop & Complete
+                </button>
+              </div>
             </div>
           )}
         </DialogContent>
@@ -163,7 +251,7 @@ function BaySlot({
   timer: string;
   timerColor: string;
   onVehicleClick: (v: Vehicle) => void;
-  onStopTimer: (id: string) => void;
+  onStopTimer: (v: Vehicle) => void;
 }) {
   const occupied = bay.vehicle !== null;
 
@@ -204,7 +292,7 @@ function BaySlot({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onStopTimer(bay.vehicle!.id);
+                onStopTimer(bay.vehicle!);
               }}
               className="flex items-center gap-1 px-2 py-1 bg-foreground text-background text-xs font-bold rounded hover:opacity-80 transition-opacity"
             >
