@@ -58,7 +58,7 @@ export function BodyDismantlingDashboard({ vehicles, facilityCapacity }: BodyDis
   return (
     <div className="space-y-6">
       {/* Filters & View Toggle */}
-      <div className="flex items-center justify-between gap-4 bg-card border border-border rounded-lg p-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4 bg-card border border-border rounded-lg p-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-red-500" />
@@ -107,7 +107,7 @@ export function BodyDismantlingDashboard({ vehicles, facilityCapacity }: BodyDis
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           title="Bays Occupied"
           value={`${Math.min(inProgressVehicles.length, 8)} / 8`}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Wrench, Car, Activity, TrendingUp, Truck, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Wrench, Car, Activity, TrendingUp, Truck, Sun, Moon, X } from 'lucide-react';
 import { DashboardLayout } from './components/DashboardLayout';
 import { BodyDismantlingDashboard } from './components/BodyDismantlingDashboard';
 import { CarsOnWayDashboard } from './components/CarsOnWayDashboard';
@@ -17,6 +17,7 @@ function AppContent() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [vehicles, setVehicles] = useState(() => generateMockVehicles(150, 'today'));
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
@@ -71,11 +72,30 @@ function AppContent() {
 
   const currentDashboardConfig = dashboards.find(d => d.id === activeDashboard);
 
+  const handleNavClick = (id: DashboardType) => {
+    setActiveDashboard(id);
+    setSidebarOpen(false);
+  };
+
   return (
     <div className={theme === 'dark' ? 'dark' : ''}>
       <div className="flex h-screen bg-background">
-        <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border">
-          <div className="p-6 border-b border-sidebar-border">
+        {/* Mobile overlay */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <aside className={`
+          fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border
+          transform transition-transform duration-200 ease-in-out
+          lg:relative lg:translate-x-0
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+          <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-white" />
@@ -85,6 +105,12 @@ function AppContent() {
                 <p className="text-xs text-sidebar-muted">Facility Management</p>
               </div>
             </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-1 rounded text-sidebar-muted hover:text-sidebar-foreground"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           <nav className="flex-1 p-4 overflow-y-auto">
@@ -92,7 +118,7 @@ function AppContent() {
               {dashboards.map(dashboard => (
                 <button
                   key={dashboard.id}
-                  onClick={() => setActiveDashboard(dashboard.id)}
+                  onClick={() => handleNavClick(dashboard.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                     activeDashboard === dashboard.id
                       ? 'bg-red-600 text-white'
@@ -126,12 +152,13 @@ function AppContent() {
           </div>
         </aside>
 
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden min-w-0">
           <DashboardLayout
             title={currentDashboardConfig?.name || 'Dashboard'}
             timeFilter={timeFilter}
             onTimeFilterChange={setTimeFilter}
             lastUpdated={lastUpdated}
+            onMenuClick={() => setSidebarOpen(true)}
           >
             {activeDashboard === 'overall' && (
               <OverallDashboard vehicles={vehicles} facilityCapacity={facilityCapacity} />

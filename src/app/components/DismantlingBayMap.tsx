@@ -63,8 +63,8 @@ export function DismantlingBayMap({ vehicles, onStopTimer }: DismantlingBayMapPr
   return (
     <div className="space-y-4">
       {/* Bay Map Grid - 2 rows of 4 */}
-      <div className="bg-muted/50 dark:bg-muted/30 rounded-xl p-6 border border-border">
-        <div className="grid grid-cols-4 gap-4">
+      <div className="bg-muted/50 dark:bg-muted/30 rounded-xl p-3 sm:p-6 border border-border">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           {bays.map((bay) => (
             <BaySlot
               key={bay.id}
@@ -78,7 +78,7 @@ export function DismantlingBayMap({ vehicles, onStopTimer }: DismantlingBayMapPr
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-6 mt-5 pt-4 border-t border-border">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-4 sm:mt-5 pt-4 border-t border-border">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="w-3 h-3 rounded bg-emerald-500" />
             <span>{"< 1h"}</span>

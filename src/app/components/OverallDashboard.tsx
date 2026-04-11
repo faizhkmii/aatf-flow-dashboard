@@ -65,7 +65,7 @@ export function OverallDashboard({ vehicles, facilityCapacity }: OverallDashboar
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-card rounded-lg border border-border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Total in System</span>

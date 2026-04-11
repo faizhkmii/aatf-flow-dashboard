@@ -114,7 +114,7 @@ the ${towingType} upon arrival.
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="flex items-center gap-4 bg-card border border-border rounded-lg p-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 bg-card border border-border rounded-lg p-4">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-red-500" />
           <span className="text-sm font-medium text-foreground">Facility:</span>
@@ -135,7 +135,7 @@ the ${towingType} upon arrival.
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-card rounded-lg border border-border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Awaiting Towing</span>
