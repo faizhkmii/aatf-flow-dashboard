@@ -156,7 +156,7 @@ export function calculateFacilityCapacity(vehicles: Vehicle[]): FacilityCapacity
     capacityMap.set(facility, {
       facilityName: facility,
       currentCount: 0,
-      maxCapacity: 1000,
+      maxCapacity: 150,
       byStatus: []
     });
   });
